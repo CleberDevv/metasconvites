@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ebdi Group</title>
+    <link rel="stylesheet" href="Style.css">
+</head>
+<body>
+
+    <!-- Telas geradas pelo JS -->
+    <div id="telas-container"></div>
+
+    <script>
+        const apis = [
+            // URL das APIs com os títulos atualizados conforme os comentários
+            {
+                url:"https://script.google.com/macros/s/AKfycbx2Jb3u8FcxvaG2hwgDVb9wZCfxx4PWijjEfDvMebiSix8ehfXCYpwzZvAqH7tNAlfs/exec",
+                titulo: "Meta Convites"
+            },
+            /*{
+                url:"https://script.google.com/macros/s/AKfycbwhStdTacaGMGK3AIVeVgfrC64SiB7AtUsYIiX9CsqGB7609T6zEAFEtLiis1IxjxCN/exec",
+                titulo: "Darede Brasília 10.07"
+            },*/
+            {
+                url:"https://script.google.com/macros/s/AKfycbzX1tnwiRP7po9qSBY8u0KQH3PnbQNwItUN9MIuvYJjZWfceafQWt4STmpPO-tez-60/exec",
+                titulo:"Compass Retail  23.07"
+            },
+            {
+                url:"https://script.google.com/macros/s/AKfycbx8sVB9LPdJElRNksoYA9oXq_-gdMw3AsRleTGleirot-tBPKCxraJU1Lf1866nP8Sj/exec",
+                titulo:"GoFluent 24.07"
+            },
+            /*{
+                url:"https://script.google.com/macros/s/AKfycbzSYLnI3UdW1cBjzZdioCJbGYpqOZQExmFlpsVSt_Hz3YEdao_knj8jZg39iMPfs35t/exec",
+                titulo:"Delfia 15.07"
+            },*/
+            {
+                url:"https://script.google.com/macros/s/AKfycbyUe98o1q6j-sEn33cxiO11rxEyZ3V_VHmnxk2NTotjaR_dqALACsSUMw0p8JLF4XsD/exec",
+                titulo: "Infobip CDMX 15.07"
+            },
+            {
+                url:"https://script.google.com/macros/s/AKfycbwWj5gv8dLINm7PBq6VTAmagehhusnNjaLGzdrDZDOA7EFgAtORouWTIsYD0T_uvMot/exec",
+                titulo:"A3Data 22.07"
+            },
+            {
+                url:"https://script.google.com/macros/s/AKfycbwxmswldrSjYLMnwodo1jQq42pGwMIcU8pEIXxHUdrtUYTGLNl2tRe4cEfBYsR0UlAp/exec",
+                titulo:"Compass UOL 14.08"
+            },
+
+        ];
+
+        const telasContainer = document.getElementById('telas-container');
+
+        // Função para criar as telas
+        function criarTelas() {
+            apis.forEach((api, index) => {
+                const tela = document.createElement('div');
+                tela.id = `tela${index + 1}`;
+                tela.style.display = index === 0 ? 'block' : 'none'; // Exibe a primeira tela inicialmente
+                tela.innerHTML = `
+                    <h1 class="title">${api.titulo}</h1>
+                    <div class="container" id="container${index + 1}">
+                        <p>Carregando dados...🚀</p>
+                    </div>
+                `;
+                telasContainer.appendChild(tela);
+            });
+        }
+
+        // Função assíncrona para carregar os dados das APIs
+        async function carregarDados() {
+            try {
+                const dados = await Promise.all(apis.map(async api => {
+                    try {
+                        const res = await fetch(api.url);
+                        if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
+                        return await res.json();
+                    } catch (e) {
+                        console.warn(`Erro ao buscar dados da API "${api.titulo}":`, e);
+                        return [];
+                    }
+                }));
+                exibirDados(dados);
+            } catch (error) {
+                console.error("Erro ao carregar os dados:", error);
+            }
+        }
+
+        // Função para exibir os dados de forma organizada
+        function exibirDados(dados) {
+    dados.forEach((data, index) => {
+        const container = document.getElementById(`container${index + 1}`);
+        container.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+            container.innerHTML = "<p>Nenhum dado encontrado.</p>";
+            return;
+        }
+
+        // Separar o item SLA dos demais
+        let slaItem = data.find(item => item.nome && item.nome.toLowerCase().includes("sla"));
+        let outros = data.filter(item => !(item.nome && item.nome.toLowerCase().includes("sla")));
+
+        // Ordena a exibição dos lovers pela porcentagem da meta
+        outros.sort((a, b) => {
+            const percentualA = parseInt(a.meta) > 0 ? Math.round((parseInt(a.alcancado) / parseInt(a.meta)) * 100) : 100;
+            const percentualB = parseInt(b.meta) > 0 ? Math.round((parseInt(b.alcancado) / parseInt(b.meta)) * 100) : 100;
+            return percentualB - percentualA;
+        });
+
+        // Junta SLA 
+        const ordenados = slaItem ? [slaItem, ...outros] : outros;
+
+        // Exibindo os dados de cada item
+        ordenados.forEach((item, i) => {
+            const nome = item.nome || `P${i + 1}`;
+            const meta = Number(item.meta) || 0;
+            const alcancado = Number(item.alcancado) || 0;
+            let percentual = meta > 0 ? Math.round((alcancado / meta) * 100) : 100;
+            const percentualExibido = percentual;
+            percentual = percentual > 100 ? 100 : percentual;
+            const corBarra = percentualExibido < 50 ? "#dc3545" : percentualExibido < 100 ? "#ffc107" : "#28a745";
+
+            // Criação do card para exibir os dados
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            // Função de adicionar coroa se bateu a meta
+            const coroaHTML = percentualExibido >= 100 ? `<div style="text-align: center; font-size: 35px; margin-bottom: 10px;">👑</div>` : "";
+
+            card.innerHTML = `
+                <div class="card-body">
+                    ${coroaHTML}
+                    <h3 style="text-align: center;">${nome}</h3>
+                    <p style="text-align: center;">Meta: <span>${meta}</span></p>
+                    <p style="text-align: center;">Alcançado: <span>${alcancado}</span></p>
+                    <div class="progress" style="background-color: white; border-radius: 10px; border: 1px solid #ccc; box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <div class="progress-bar" style="width: ${percentual}%; background: ${corBarra}; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                            <span style="color: #000; font-weight: bold;">${percentualExibido}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    });
+}
+
+        // Função para alternar entre as telas
+        let indiceTela = 0;
+        function mudarTela() {
+            apis.forEach((_, i) => {
+                document.getElementById(`tela${i + 1}`).style.display = 'none';
+            });
+            document.getElementById(`tela${indiceTela + 1}`).style.display = 'block';
+            indiceTela = (indiceTela + 1) % apis.length;
+        }
+
+        // Inicialização da página
+        window.onload = () => {
+            criarTelas();
+            carregarDados();
+            setInterval(carregarDados, 30000); // Atualiza dados a cada 30 segundos
+            mudarTela();
+            setInterval(mudarTela, 10000); // Muda de tela a cada 10 segundos
+        };
+    </script>
+</body>
+</html> 
